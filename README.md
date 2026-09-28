@@ -32,7 +32,7 @@ Every position comes from a **built-in ephemeris written in pure Dart**. The app
 | Planets | JPL/Standish Keplerian elements (1800–2050) | a few arcmin |
 | Stars | J2000 catalog, precessed to date | < 1′ |
 | Rahu/Ketu | Mean lunar node, Meeus 47.7 | < 0.01° |
-| Ayanamsa | Lahiri, 1956 ICRC anchor + IAU 2006 precession | ~1″ vs Swiss Ephemeris |
+| Ayanamsa | Lahiri, 1956 ICRC anchor + IAU 2006 precession | reproduces the published Makar Sankranti 2024 moment to < 0.05° |
 
 Unit tests in `test/` check the engine against the worked examples in Meeus's *Astronomical Algorithms* (examples 12.a, 25.a, 33.a, 47.a) and against physical checks such as midnight sun, noon altitude and Polaris's altitude.
 
