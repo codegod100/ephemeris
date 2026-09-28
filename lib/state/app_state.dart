@@ -25,6 +25,14 @@ class AppState extends ChangeNotifier {
   double fov = 70; // horizontal field of view, degrees
   double manualAz = 180, manualAlt = 20;
 
+  /// AR mode: live camera behind the sky, drawn to match the camera's lens.
+  bool arMode = false;
+
+  /// Field of view of the camera along the long side of its image, degrees.
+  /// Typical phone main cameras (~26 mm equivalent) are about 66°; pinching
+  /// in AR mode fine-tunes it so the overlay lines up with the real sky.
+  double cameraFov = 66;
+
   /// Added to the compass azimuth; corrects magnetic declination and bias.
   double headingOffset = 0;
 
@@ -57,6 +65,8 @@ class AppState extends ChangeNotifier {
     }
     useSensors = p.getBool('useSensors') ?? useSensors;
     fov = p.getDouble('fov') ?? fov;
+    arMode = p.getBool('arMode') ?? arMode;
+    cameraFov = p.getDouble('cameraFov') ?? cameraFov;
     headingOffset = p.getDouble('headingOffset') ?? headingOffset;
     showStars = p.getBool('showStars') ?? showStars;
     showConstellations = p.getBool('showConstellations') ?? showConstellations;
@@ -164,6 +174,18 @@ class AppState extends ChangeNotifier {
   void setFov(double v) {
     fov = v.clamp(10.0, 150.0);
     _prefs?.setDouble('fov', fov);
+    notifyListeners();
+  }
+
+  void setArMode(bool v) {
+    arMode = v;
+    _prefs?.setBool('arMode', v);
+    notifyListeners();
+  }
+
+  void setCameraFov(double v) {
+    cameraFov = v.clamp(30.0, 110.0);
+    _prefs?.setDouble('cameraFov', cameraFov);
     notifyListeners();
   }
 
