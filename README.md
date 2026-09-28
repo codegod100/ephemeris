@@ -55,13 +55,14 @@ lib/
     settings_screen.dart
     time_bar.dart
 test/
-  astro_test.dart, orientation_test.dart
+  astro_test.dart, orientation_test.dart, widget_test.dart
 ```
 
 ## Getting started
 
 ```bash
-# restores the default launcher icons (binary assets aren't committed)
+# regenerate the standard android/ & ios/ boilerplate and launcher icons
+# (only the customised AndroidManifest.xml and Info.plist are committed)
 flutter create --org io.github.heliosky --project-name helios_sky --platforms android,ios .
 flutter pub get
 flutter test          # run the ephemeris tests (TZ=UTC flutter test to include the equinox test)
