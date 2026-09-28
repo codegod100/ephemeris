@@ -138,6 +138,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               toggle('showPlanets', 'Planets', app.showPlanets),
               toggle('showSunPath', "Today's Sun path", app.showSunPath, 'Arc with hourly markers'),
               toggle('showGrid', 'Alt/Az grid', app.showGrid),
+              toggle('showEcliptic', 'Ecliptic & celestial equator', app.showEcliptic,
+                  'With the equinox and solstice points'),
+              toggle('showVedic', 'Rashis, nakshatras, Rahu & Ketu', app.showVedic,
+                  'Sidereal zodiac (Lahiri ayanamsa)'),
               toggle('showLabels', 'Labels', app.showLabels),
             ],
           );

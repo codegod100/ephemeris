@@ -51,6 +51,7 @@ class SkyPainter extends CustomPainter {
   final CameraBasis cam;
   final double fov;
   final bool showStars, showConstellations, showPlanets, showGrid, showSunPath, showLabels, showAtmosphere;
+  final bool showEcliptic, showVedic;
   final String? selected;
 
   /// Draw over a live camera image: rectilinear projection, no painted sky or
@@ -65,6 +66,8 @@ class SkyPainter extends CustomPainter {
     required this.showConstellations,
     required this.showPlanets,
     required this.showGrid,
+    this.showEcliptic = false,
+    this.showVedic = false,
     required this.showSunPath,
     required this.showLabels,
     required this.showAtmosphere,
@@ -81,6 +84,8 @@ class SkyPainter extends CustomPainter {
 
     if (!ar) _paintSkyBackground(canvas, size, sunAlt);
     if (showGrid) _paintGrid(canvas);
+    if (showEcliptic) _paintEclipticAndEquator(canvas);
+    if (showVedic) _paintZodiac(canvas);
 
     // Stars fade out as the sky brightens (only when atmosphere is on).
     final starAlpha = showAtmosphere ? ((-sunAlt - 2) / 10).clamp(0.0, 1.0) : 1.0;
@@ -88,6 +93,7 @@ class SkyPainter extends CustomPainter {
     if (showStars && starAlpha > 0) _paintStars(canvas, starAlpha);
     if (showSunPath) _paintSunPath(canvas);
     if (showPlanets) _paintPlanets(canvas, showAtmosphere ? ((-sunAlt + 4) / 8).clamp(0.25, 1.0) : 1.0);
+    if (showVedic) _paintNodes(canvas);
     _paintMoon(canvas);
     _paintSun(canvas);
     if (ar) {
@@ -247,6 +253,92 @@ class SkyPainter extends CustomPainter {
         final p = _proj.project(Horizontal(cam.azimuth, alt.toDouble()).toEnu());
         if (p != null && _proj.onScreen(p)) _label(canvas, p + const Offset(4, -14), '$alt°', const Color(0x9980B0FF), 10);
       }
+    }
+  }
+
+  // ---- ecliptic, equator & sidereal zodiac ---------------------------------
+  void _paintEclipticAndEquator(Canvas canvas) {
+    final z = sky.zodiac;
+    _polyline(canvas, z.equator, Paint()
+      ..color = const Color(0x8866D9EF)
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke);
+    _polyline(canvas, z.ecliptic, Paint()
+      ..color = const Color(0xAAFFB74D)
+      ..strokeWidth = 1.4
+      ..style = PaintingStyle.stroke);
+    if (showLabels) {
+      final eq = _pickOnScreen(z.equator);
+      if (eq != null) _label(canvas, eq + const Offset(4, 2), 'celestial equator', const Color(0xAA66D9EF), 10);
+      final ec = _pickOnScreen(z.ecliptic);
+      if (ec != null) _label(canvas, ec + const Offset(4, -14), 'ecliptic', const Color(0xCCFFB74D), 10);
+    }
+    final dot = Paint()..color = const Color(0xFF66D9EF);
+    for (final (name, v) in z.seasonPoints) {
+      final p = _proj.project(v);
+      if (p == null || !_proj.onScreen(p, 10)) continue;
+      canvas.drawCircle(p, 4, dot);
+      if (showLabels) _label(canvas, p + const Offset(6, 4), name, const Color(0xFF9EE7F7), 11, bold: true);
+    }
+  }
+
+  /// A point of a polyline near the middle of the screen, for its label.
+  Offset? _pickOnScreen(List<List<double>> pts) {
+    Offset? best;
+    var bestD = double.infinity;
+    for (final v in pts) {
+      final p = _proj.project(v);
+      if (p == null || !_proj.onScreen(p, -30)) continue;
+      final d = (p - _proj.center).distanceSquared;
+      if (d < bestD) {
+        bestD = d;
+        best = p;
+      }
+    }
+    return best;
+  }
+
+  void _paintZodiac(Canvas canvas) {
+    final z = sky.zodiac;
+    void ticks(List<(List<double>, List<double>)> segs, Paint paint) {
+      for (final (a, b) in segs) {
+        final p1 = _proj.project(a), p2 = _proj.project(b);
+        if (p1 == null || p2 == null) continue;
+        if (!_proj.onScreen(p1, 50) && !_proj.onScreen(p2, 50)) continue;
+        canvas.drawLine(p1, p2, paint);
+      }
+    }
+
+    ticks(z.nakshatraTicks, Paint()
+      ..color = const Color(0x8880CBC4)
+      ..strokeWidth = 1);
+    ticks(z.rashiTicks, Paint()
+      ..color = const Color(0xCCFFB74D)
+      ..strokeWidth = 1.6);
+    if (!showLabels) return;
+    void labels(List<(String, List<double>)> ls, Color color, double size, {bool bold = false}) {
+      for (final (name, v) in ls) {
+        final p = _proj.project(v);
+        if (p == null || !_proj.onScreen(p, 20)) continue;
+        _label(canvas, p - Offset(name.length * size * 0.28, size * 0.6), name, color, size, bold: bold);
+      }
+    }
+
+    labels(z.rashiLabels, const Color(0xFFFFCC80), 13, bold: true);
+    labels(z.nakshatraLabels, const Color(0xCC80CBC4), 10);
+  }
+
+  void _paintNodes(Canvas canvas) {
+    for (final n in sky.nodes) {
+      final p = _proj.project(n.enu);
+      if (p == null || !_proj.onScreen(p, 10)) continue;
+      final paint = Paint()
+        ..color = n.color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6;
+      canvas.drawCircle(p, 6, paint);
+      canvas.drawLine(p + const Offset(-4, 0), p + const Offset(4, 0), paint);
+      if (showLabels) _label(canvas, p + const Offset(9, -7), n.name, n.color, 12, bold: true);
     }
   }
 

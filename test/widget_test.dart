@@ -24,6 +24,8 @@ void main() {
                 showConstellations: true,
                 showPlanets: true,
                 showGrid: true,
+              showEcliptic: true,
+              showVedic: true,
                 showSunPath: true,
                 showLabels: true,
                 showAtmosphere: true,

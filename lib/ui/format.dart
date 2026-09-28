@@ -1,3 +1,5 @@
+import '../astro/vedic.dart';
+
 String two(int n) => n.toString().padLeft(2, '0');
 
 String fmtTime(DateTime? t, {bool seconds = false}) {
@@ -24,3 +26,21 @@ String fmtAlt(double alt) => '${alt >= 0 ? '+' : ''}${alt.toStringAsFixed(1)}°'
 
 String fmtLatLon(double lat, double lon) =>
     '${lat.abs().toStringAsFixed(4)}°${lat >= 0 ? 'N' : 'S'}, ${lon.abs().toStringAsFixed(4)}°${lon >= 0 ? 'E' : 'W'}';
+
+/// Degrees and arcminutes, e.g. 12°05′.
+String fmtDegMin(double d) {
+  var deg = d.floor();
+  var min = ((d - deg) * 60).round();
+  if (min == 60) {
+    deg += 1;
+    min = 0;
+  }
+  return '$deg°${two(min)}′';
+}
+
+/// e.g. "Tula 12°05′ · Swati 2 (Rahu) ℞".
+String fmtGraha(GrahaPosition g) {
+  final s = g.sidereal;
+  return '${s.rashi.name} ${fmtDegMin(s.degInRashi)} · ${s.nakshatra} ${s.pada} '
+      '(${s.nakshatraLord.sanskrit})${g.retrograde ? ' ℞' : ''}';
+}

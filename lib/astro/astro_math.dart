@@ -122,6 +122,13 @@ Equatorial eclipticToEquatorial(double lon, double lat, double eps, [double? dis
   return Equatorial(normDeg(ra), dec, dist);
 }
 
+/// Equatorial → ecliptic (lon, lat), all degrees.
+({double lon, double lat}) equatorialToEcliptic(Equatorial eq, double eps) {
+  final lon = atan2D(sinD(eq.ra) * cosD(eps) + tanD(eq.dec) * sinD(eps), cosD(eq.ra));
+  final lat = asinD(sinD(eq.dec) * cosD(eps) - cosD(eq.dec) * sinD(eps) * sinD(eq.ra));
+  return (lon: normDeg(lon), lat: lat);
+}
+
 /// Equatorial → horizontal for an observer.
 Horizontal equatorialToHorizontal(
   Equatorial eq,
