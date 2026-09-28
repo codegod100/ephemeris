@@ -58,6 +58,8 @@ lib/
     sun_info_screen.dart  times & tables
     settings_screen.dart
     time_bar.dart
+deploy/
+  modal_app.py      web deploy to Modal
 test/
   astro_test.dart, orientation_test.dart, widget_test.dart
 ```
@@ -74,6 +76,18 @@ flutter run           # on a real device, for the sensors
 ```
 
 For the web version, add `web` to the `--platforms` list above, then `flutter build web` and serve `build/web/` over HTTPS.
+
+### Deploying the web version to Modal
+
+`deploy/modal_app.py` builds the web app inside a [Modal](https://modal.com) image (it installs Flutter there, so you don't need Flutter locally) and serves it over HTTPS:
+
+```bash
+pip install modal && modal setup     # once, to log in
+modal deploy deploy/modal_app.py     # prints the https://…modal.run URL
+modal serve deploy/modal_app.py      # temporary dev URL that redeploys on change
+```
+
+The first deploy takes several minutes while Flutter installs. Later deploys reuse that layer and only rebuild the app.
 
 You need a physical phone with an accelerometer and magnetometer for sensor mode. On an emulator, tap the ✋/🧭 button to switch to manual drag mode.
 
