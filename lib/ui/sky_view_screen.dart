@@ -254,6 +254,7 @@ class _SkyViewScreenState extends State<SkyViewScreen> with WidgetsBindingObserv
           Expanded(
             child: _glass(
               Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Pointing  ${fmtAz(cam.azimuth)}  ${fmtAlt(cam.altitude)}',
@@ -261,6 +262,13 @@ class _SkyViewScreenState extends State<SkyViewScreen> with WidgetsBindingObserv
                   const SizedBox(height: 2),
                   Text('☀ Sun  ${fmtAz(sun.az)}  ${fmtAlt(sun.alt)}',
                       style: const TextStyle(color: Color(0xFFFFE082))),
+                  if (ori.needsPermission && app.useSensors)
+                    TextButton.icon(
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero, foregroundColor: Colors.orangeAccent),
+                      icon: const Icon(Icons.screen_rotation, size: 16),
+                      label: const Text('Tap to enable motion sensors'),
+                      onPressed: ori.requestPermission,
+                    ),
                   if (!ori.available && app.useSensors)
                     const Text('No motion sensors — drag to look around',
                         style: TextStyle(color: Colors.orangeAccent, fontSize: 12)),

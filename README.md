@@ -19,6 +19,7 @@ Every position comes from a **built-in ephemeris written in pure Dart**. The app
 - **Sun & Moon times.** Dawn and dusk (astronomical, nautical and civil), sunrise, sunset, solar noon, golden hour, day length, moonrise, moonset and phase.
 - **Manual mode.** Drag to look around and pinch to zoom. This works on emulators and tablets without a compass.
 - GPS location, or enter latitude and longitude by hand. Settings are saved.
+- **Web version.** Browsers don't expose the magnetometer, so on the web the orientation comes from the browser's own compass-referenced orientation events instead: `deviceorientationabsolute` on Android Chrome, and `deviceorientation` plus `webkitCompassHeading` on iOS Safari (which asks for motion permission after you tap *Enable motion sensors*). Sensors, camera and GPS all need the page to be served over HTTPS. Desktop browsers have no orientation sensors and fall back to drag mode.
 
 ## Accuracy
 
@@ -46,6 +47,7 @@ lib/
     events.dart       rise/set/twilight solver (scan + bisection, handles polar day/night)
   sensors/
     orientation_service.dart   accelerometer + magnetometer → camera basis (ENU)
+    web_orientation*.dart      browser DeviceOrientation events (web only)
   state/
     app_state.dart    settings, location, time control
     sky_model.dart    per-second snapshot of every object's alt/az
@@ -70,6 +72,8 @@ flutter pub get
 flutter test          # run the ephemeris tests (TZ=UTC flutter test to include the equinox test)
 flutter run           # on a real device, for the sensors
 ```
+
+For the web version, add `web` to the `--platforms` list above, then `flutter build web` and serve `build/web/` over HTTPS.
 
 You need a physical phone with an accelerometer and magnetometer for sensor mode. On an emulator, tap the ✋/🧭 button to switch to manual drag mode.
 
