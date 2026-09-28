@@ -61,6 +61,8 @@ test/
 ## Getting started
 
 ```bash
+# restores the default launcher icons (binary assets aren't committed)
+flutter create --org io.github.heliosky --project-name helios_sky --platforms android,ios .
 flutter pub get
 flutter test          # run the ephemeris tests (TZ=UTC flutter test to include the equinox test)
 flutter run           # on a real device, for the sensors
