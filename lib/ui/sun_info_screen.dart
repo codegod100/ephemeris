@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../astro/events.dart';
 import '../astro/moon.dart';
+import '../astro/vedic.dart';
 import '../state/app_state.dart';
 import 'format.dart';
 
@@ -70,6 +71,20 @@ class SunInfoScreen extends StatelessWidget {
                   title: Text(p.name),
                   subtitle: Text(p.pos.alt > 0 ? 'Above horizon' : 'Below horizon'),
                   trailing: Text('${fmtAz(p.pos.az)}\n${fmtAlt(p.pos.alt)}', textAlign: TextAlign.right),
+                ),
+              header('Navagraha (sidereal, Lahiri)'),
+              row('Ayanamsa', fmtDegMin(sky.ayanamsa)),
+              for (final g in sky.grahas)
+                ListTile(
+                  dense: true,
+                  title: Text('${g.graha.sanskrit} · ${g.graha.english}'),
+                  subtitle: Text('${g.sidereal.nakshatra} pada ${g.sidereal.pada} · '
+                      'lord ${g.sidereal.nakshatraLord.sanskrit}'),
+                  trailing: Text(
+                    '${g.sidereal.rashi.name} ${fmtDegMin(g.sidereal.degInRashi)}${g.retrograde ? ' ℞' : ''}\n'
+                    '${g.sidereal.rashi.english}',
+                    textAlign: TextAlign.right,
+                  ),
                 ),
               const SizedBox(height: 24),
             ],

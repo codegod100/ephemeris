@@ -13,6 +13,8 @@ Every position comes from a **built-in ephemeris written in pure Dart**. The app
 - **Compass alignment on the Sun.** Point the phone at the real Sun and tap ⌖. The app then corrects for magnetic declination and compass bias.
 - **Moon** with correct phase and bright-limb orientation, plus a topocentric parallax correction.
 - **Planets** from Mercury to Neptune.
+- **Ecliptic and celestial equator**, with the March/September equinox and June/December solstice points marked where the Sun crosses the equator and where it is farthest from it.
+- **Jyotisha layer.** The 12 **rashis** and 27 **nakshatras** of the sidereal zodiac (Lahiri ayanamsa) are drawn along the ecliptic, with **Rahu and Ketu** (the mean lunar nodes) marked. Tap any of the nine grahas to see its rashi, degree, nakshatra, pada and nakshatra lord (℞ when retrograde). The *Sun & Moon* screen lists all nine, plus the current ayanamsa.
 - **~95 bright stars** with constellation stick figures (Orion, Big Dipper, Cassiopeia, Cygnus, Scorpius, Crux, Leo and more).
 - **Atmosphere.** The sky colour follows the Sun's altitude through day, civil, nautical and astronomical twilight, and stars fade out in daylight.
 - **Time travel.** Step ±10 min / 1 h / 1 day, pause the clock, or pick any date and time.
@@ -29,6 +31,8 @@ Every position comes from a **built-in ephemeris written in pure Dart**. The app
 | Moon | Meeus ch. 47, main periodic terms + parallax | ~0.05° |
 | Planets | JPL/Standish Keplerian elements (1800–2050) | a few arcmin |
 | Stars | J2000 catalog, precessed to date | < 1′ |
+| Rahu/Ketu | Mean lunar node, Meeus 47.7 | < 0.01° |
+| Ayanamsa | Lahiri, 1956 ICRC anchor + IAU 2006 precession | reproduces the published Makar Sankranti 2024 moment to < 0.05° |
 
 Unit tests in `test/` check the engine against the worked examples in Meeus's *Astronomical Algorithms* (examples 12.a, 25.a, 33.a, 47.a) and against physical checks such as midnight sun, noon altitude and Polaris's altitude.
 
@@ -45,6 +49,7 @@ lib/
     planets.dart      Keplerian planets
     stars.dart        bright-star catalog + constellation lines
     events.dart       rise/set/twilight solver (scan + bisection, handles polar day/night)
+    vedic.dart        Lahiri ayanamsa, rashis, nakshatras, lunar nodes, the nine grahas
   sensors/
     orientation_service.dart   accelerometer + magnetometer → camera basis (ENU)
     web_orientation*.dart      browser DeviceOrientation events (web only)
@@ -61,7 +66,7 @@ lib/
 deploy/
   modal_app.py      web deploy to Modal
 test/
-  astro_test.dart, orientation_test.dart, widget_test.dart
+  astro_test.dart, orientation_test.dart, vedic_test.dart, widget_test.dart
 ```
 
 ## Getting started

@@ -125,6 +125,7 @@ class _SkyViewScreenState extends State<SkyViewScreen> with WidgetsBindingObserv
     for (final o in app.sky.allObjects) {
       if (o.kind == SkyObjectKind.star && !app.showStars) continue;
       if (o.kind == SkyObjectKind.planet && !app.showPlanets) continue;
+      if (o.kind == SkyObjectKind.node && !app.showVedic) continue;
       final p = proj.project(o.enu);
       if (p == null) continue;
       final dist = (p - d.localPosition).distance;
@@ -205,6 +206,8 @@ class _SkyViewScreenState extends State<SkyViewScreen> with WidgetsBindingObserv
                         showConstellations: app.showConstellations,
                         showPlanets: app.showPlanets,
                         showGrid: app.showGrid,
+                        showEcliptic: app.showEcliptic,
+                        showVedic: app.showVedic,
                         showSunPath: app.showSunPath,
                         showLabels: app.showLabels,
                         showAtmosphere: app.showAtmosphere,
@@ -339,7 +342,10 @@ class _SkyViewScreenState extends State<SkyViewScreen> with WidgetsBindingObserv
       SkyObjectKind.star => 'Magnitude ${o.mag.toStringAsFixed(2)}',
       SkyObjectKind.planet => 'Planet',
       SkyObjectKind.sun => o.pos.alt > 0 ? 'Above the horizon' : 'Below the horizon',
+      SkyObjectKind.node => o.name == 'Rahu' ? 'Ascending lunar node' : 'Descending lunar node',
     };
+    final graha = app.showVedic ? app.sky.grahaFor(o) : null;
+    final vedic = graha == null ? null : fmtGraha(graha);
     return Positioned(
       left: 12,
       right: 12,
@@ -355,6 +361,7 @@ class _SkyViewScreenState extends State<SkyViewScreen> with WidgetsBindingObserv
                 Text('Az ${fmtAz(o.pos.az)}   Alt ${fmtAlt(o.pos.alt)}',
                     style: const TextStyle(color: Colors.white70)),
                 Text(extra, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                if (vedic != null) Text(vedic, style: const TextStyle(color: Color(0xFFFFB74D), fontSize: 12)),
               ],
             ),
           ),
