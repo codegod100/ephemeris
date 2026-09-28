@@ -8,18 +8,23 @@ import '../astro/stars.dart';
 import '../sensors/orientation_service.dart';
 import '../state/sky_model.dart';
 
-/// Stereographic projection centred on the camera's forward direction.
-/// Maps circles on the sky to circles on screen (like Stellarium's default).
+/// Projection centred on the camera's forward direction.
+///
+/// By default it is stereographic, which maps circles on the sky to circles on
+/// screen (like Stellarium's default). With [rectilinear] it is gnomonic, the
+/// projection of a real camera lens, so the overlay lines up with a camera
+/// image in AR mode.
 class SkyProjection {
   final CameraBasis cam;
   final Size size;
   final double fovDeg;
+  final bool rectilinear;
   late final double focal;
   late final Offset center;
 
-  SkyProjection(this.cam, this.size, this.fovDeg) {
+  SkyProjection(this.cam, this.size, this.fovDeg, {this.rectilinear = false}) {
     center = Offset(size.width / 2, size.height / 2);
-    focal = (size.width / 2) / (2 * tanD(fovDeg / 4));
+    focal = rectilinear ? (size.width / 2) / tanD(fovDeg / 2) : (size.width / 2) / (2 * tanD(fovDeg / 4));
   }
 
   /// Camera-space components of an ENU unit vector.
@@ -29,8 +34,8 @@ class SkyProjection {
   /// Projects an ENU unit vector. Returns null when too far behind the camera.
   Offset? project(List<double> v, {double minZ = -0.6}) {
     final (x, y, z) = camSpace(v);
-    if (z < minZ) return null;
-    final k = 2 / (1 + z);
+    if (z < (rectilinear ? math.max(minZ, 0.05) : minZ)) return null;
+    final k = rectilinear ? 1 / z : 2 / (1 + z);
     return Offset(center.dx + focal * k * x, center.dy - focal * k * y);
   }
 
@@ -38,7 +43,7 @@ class SkyProjection {
       p.dx >= -margin && p.dy >= -margin && p.dx <= size.width + margin && p.dy <= size.height + margin;
 
   /// Pixels per degree at the centre of the view.
-  double get pxPerDeg => focal * deg2rad;
+  double get pxPerDeg => (rectilinear ? focal : 2 * focal) * deg2rad;
 }
 
 class SkyPainter extends CustomPainter {
@@ -47,6 +52,10 @@ class SkyPainter extends CustomPainter {
   final double fov;
   final bool showStars, showConstellations, showPlanets, showGrid, showSunPath, showLabels, showAtmosphere;
   final String? selected;
+
+  /// Draw over a live camera image: rectilinear projection, no painted sky or
+  /// ground, just the horizon line.
+  final bool ar;
 
   SkyPainter({
     required this.sky,
@@ -60,16 +69,17 @@ class SkyPainter extends CustomPainter {
     required this.showLabels,
     required this.showAtmosphere,
     this.selected,
+    this.ar = false,
   });
 
   late SkyProjection _proj;
 
   @override
   void paint(Canvas canvas, Size size) {
-    _proj = SkyProjection(cam, size, fov);
+    _proj = SkyProjection(cam, size, fov, rectilinear: ar);
     final sunAlt = sky.sun.pos.alt;
 
-    _paintSkyBackground(canvas, size, sunAlt);
+    if (!ar) _paintSkyBackground(canvas, size, sunAlt);
     if (showGrid) _paintGrid(canvas);
 
     // Stars fade out as the sky brightens (only when atmosphere is on).
@@ -80,7 +90,11 @@ class SkyPainter extends CustomPainter {
     if (showPlanets) _paintPlanets(canvas, showAtmosphere ? ((-sunAlt + 4) / 8).clamp(0.25, 1.0) : 1.0);
     _paintMoon(canvas);
     _paintSun(canvas);
-    _paintGround(canvas, size, sunAlt);
+    if (ar) {
+      _paintHorizonLine(canvas);
+    } else {
+      _paintGround(canvas, size, sunAlt);
+    }
     _paintCardinals(canvas);
     _paintSelection(canvas);
     _paintOffscreenSunArrow(canvas, size);
@@ -175,6 +189,14 @@ class SkyPainter extends CustomPainter {
       canvas.drawPath(path, fill);
       canvas.drawLine(b - d * big, b + d * big, edge);
     }
+  }
+
+  void _paintHorizonLine(Canvas canvas) {
+    final paint = Paint()
+      ..color = const Color(0xFF9FD38A)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+    _polyline(canvas, [for (var az = 0; az <= 360; az += 2) Horizontal(az.toDouble(), 0).toEnu()], paint);
   }
 
   (Offset, double)? _circleThrough(Offset a, Offset b, Offset c) {

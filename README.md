@@ -8,6 +8,7 @@ Every position comes from a **built-in ephemeris written in pure Dart**. The app
 
 - **Orientation-driven sky view.** The accelerometer and magnetometer are combined into a full 3-D camera orientation (the same math as Android's `getRotationMatrix`), then smoothed.
 - **Stereographic projection**, the same default Stellarium uses. The horizon is filled exactly, because a great circle projects to a circle.
+- **AR camera overlay.** Tap 🎥 to show the live camera behind the sky. In AR mode the overlay switches to a rectilinear (gnomonic) projection, which is what a real lens produces, and its scale follows the camera's field of view and how the preview is cropped to the screen. Pinch to fine-tune the lens FOV until stars and the Sun sit on top of the real ones. The value is also in Settings.
 - **Sun finder.** Shows the Sun's current azimuth and altitude, draws **today's sun path** with hourly markers, and puts an edge arrow on screen with the angular distance to the Sun.
 - **Compass alignment on the Sun.** Point the phone at the real Sun and tap ⌖. The app then corrects for magnetic declination and compass bias.
 - **Moon** with correct phase and bright-limb orientation, plus a topocentric parallax correction.
@@ -18,6 +19,7 @@ Every position comes from a **built-in ephemeris written in pure Dart**. The app
 - **Sun & Moon times.** Dawn and dusk (astronomical, nautical and civil), sunrise, sunset, solar noon, golden hour, day length, moonrise, moonset and phase.
 - **Manual mode.** Drag to look around and pinch to zoom. This works on emulators and tablets without a compass.
 - GPS location, or enter latitude and longitude by hand. Settings are saved.
+- **Web version.** Browsers don't expose the magnetometer, so on the web the orientation comes from the browser's own compass-referenced orientation events instead: `deviceorientationabsolute` on Android Chrome, and `deviceorientation` plus `webkitCompassHeading` on iOS Safari (which asks for motion permission after you tap *Enable motion sensors*). Sensors, camera and GPS all need the page to be served over HTTPS. Desktop browsers have no orientation sensors and fall back to drag mode.
 
 ## Accuracy
 
@@ -45,12 +47,14 @@ lib/
     events.dart       rise/set/twilight solver (scan + bisection, handles polar day/night)
   sensors/
     orientation_service.dart   accelerometer + magnetometer → camera basis (ENU)
+    web_orientation*.dart      browser DeviceOrientation events (web only)
   state/
     app_state.dart    settings, location, time control
     sky_model.dart    per-second snapshot of every object's alt/az
   ui/
     sky_view_screen.dart  main view, gestures, overlays
-    sky_painter.dart      stereographic renderer
+    sky_painter.dart      stereographic renderer (gnomonic in AR mode)
+    ar_camera.dart        camera preview + lens-FOV maths for the AR overlay
     sun_info_screen.dart  times & tables
     settings_screen.dart
     time_bar.dart
@@ -69,9 +73,11 @@ flutter test          # run the ephemeris tests (TZ=UTC flutter test to include 
 flutter run           # on a real device, for the sensors
 ```
 
+For the web version, add `web` to the `--platforms` list above, then `flutter build web` and serve `build/web/` over HTTPS.
+
 You need a physical phone with an accelerometer and magnetometer for sensor mode. On an emulator, tap the ✋/🧭 button to switch to manual drag mode.
 
-**Permissions:** location (to compute the sky for where you are) and, on iOS, motion. Both are already declared in `AndroidManifest.xml` and `Info.plist`.
+**Permissions:** location (to compute the sky for where you are), camera (for AR mode) and, on iOS, motion. Both are already declared in `AndroidManifest.xml` and `Info.plist`.
 
 ## How the orientation works
 
@@ -83,7 +89,6 @@ You need a physical phone with an accelerometer and magnetometer for sensor mode
 
 ## Roadmap ideas
 
-- Camera passthrough (AR overlay)
 - Gyroscope fusion (rotation-vector sensor) for smoother motion
 - World Magnetic Model for automatic declination
 - Larger star catalog (Hipparcos to mag 6), deep-sky objects

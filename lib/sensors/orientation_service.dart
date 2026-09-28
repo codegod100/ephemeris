@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 import '../astro/astro_math.dart';
+import 'web_orientation.dart';
 
 typedef Vec3 = List<double>;
 
@@ -49,6 +50,9 @@ class CameraBasis {
 
 /// Fuses accelerometer + magnetometer into a device orientation, like
 /// Android's SensorManager.getRotationMatrix, with exponential smoothing.
+///
+/// Browsers don't expose the magnetometer, so on the web the orientation
+/// comes from the browser's own compass-referenced orientation events.
 class OrientationService extends ChangeNotifier {
   OrientationService({this.smoothing = 0.12});
 
@@ -61,10 +65,27 @@ class OrientationService extends ChangeNotifier {
   bool _available = true;
   StreamSubscription<AccelerometerEvent>? _accSub;
   StreamSubscription<MagnetometerEvent>? _magSub;
+  StreamSubscription<void>? _webSub;
+  bool _needsPermission = false;
 
   CameraBasis? get basis => _basis;
   bool get available => _available;
-  bool get running => _accSub != null;
+  bool get running => _accSub != null || _webSub != null;
+
+  /// True on iOS Safari until the user grants motion access from a tap.
+  bool get needsPermission => _needsPermission;
+
+  /// Must be called from a user gesture (a button tap).
+  Future<void> requestPermission() async {
+    final granted = await requestWebOrientationPermission();
+    _needsPermission = false;
+    if (granted) {
+      _startWeb();
+    } else {
+      _markUnavailable();
+    }
+    notifyListeners();
+  }
 
   /// True when the magnetic field magnitude looks unlike Earth's
   /// (~25–65 µT), which usually means interference or an uncalibrated compass.
@@ -77,6 +98,17 @@ class OrientationService extends ChangeNotifier {
 
   void start() {
     if (running) return;
+    if (kIsWeb) {
+      if (!webOrientationSupported) {
+        _markUnavailable();
+      } else if (webOrientationNeedsPermission) {
+        _needsPermission = true;
+        notifyListeners();
+      } else {
+        _startWeb();
+      }
+      return;
+    }
     _accSub = accelerometerEventStream(samplingPeriod: SensorInterval.gameInterval).listen(
       (e) {
         _gravity = _lowPass(_gravity, [e.x, e.y, e.z]);
@@ -98,8 +130,23 @@ class OrientationService extends ChangeNotifier {
   void stop() {
     _accSub?.cancel();
     _magSub?.cancel();
+    _webSub?.cancel();
     _accSub = null;
     _magSub = null;
+    _webSub = null;
+  }
+
+  void _startWeb() {
+    _webSub = listenWebOrientation((alpha, beta, gamma) {
+      final b = basisFromEuler(alpha, beta, gamma);
+      final prev = _basis;
+      // Smooth the pointing and up directions, then re-orthonormalise.
+      final f = prev == null ? b.forward : normalize(_lowPass(prev.forward, b.forward));
+      final u0 = prev == null ? b.up : _lowPass(prev.up, b.up);
+      final r = normalize(cross(f, u0));
+      _basis = CameraBasis(r, cross(r, f), f);
+      notifyListeners();
+    });
   }
 
   void _markUnavailable() {
@@ -145,6 +192,21 @@ class OrientationService extends ChangeNotifier {
     final up = [h[1], mm[1], an[1]];
     final forward = [-h[2], -mm[2], -an[2]];
     return CameraBasis(right, up, forward);
+  }
+
+  /// Camera basis from W3C DeviceOrientation Euler angles (degrees), where
+  /// the rotation R = Rz(alpha)·Rx(beta)·Ry(gamma) takes device coordinates
+  /// to East-North-Up when alpha is referenced to north. Device axes match
+  /// [basisFromSensors].
+  static CameraBasis basisFromEuler(double alpha, double beta, double gamma) {
+    final ca = cosD(alpha), sa = sinD(alpha);
+    final cb = cosD(beta), sb = sinD(beta);
+    final cg = cosD(gamma), sg = sinD(gamma);
+    // Columns of R: images of device x, y and z.
+    final x = [ca * cg - sa * sb * sg, sa * cg + ca * sb * sg, -cb * sg];
+    final y = [-sa * cb, ca * cb, sb];
+    final z = [ca * sg + sa * sb * cg, sa * sg - ca * sb * cg, cb * cg];
+    return CameraBasis(x, y, [-z[0], -z[1], -z[2]]);
   }
 
   @override

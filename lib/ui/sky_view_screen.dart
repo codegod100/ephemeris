@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../sensors/orientation_service.dart';
 import '../state/app_state.dart';
 import '../state/sky_model.dart';
+import 'ar_camera.dart';
 import 'format.dart';
 import 'settings_screen.dart';
 import 'sky_painter.dart';
@@ -18,10 +19,11 @@ class SkyViewScreen extends StatefulWidget {
   State<SkyViewScreen> createState() => _SkyViewScreenState();
 }
 
-class _SkyViewScreenState extends State<SkyViewScreen> {
+class _SkyViewScreenState extends State<SkyViewScreen> with WidgetsBindingObserver {
   String? _selected;
   double _fovAtScaleStart = 70;
   Size _size = Size.zero;
+  final _ar = ArCamera();
 
   AppState get app => widget.app;
   OrientationService get ori => widget.orientation;
@@ -29,7 +31,47 @@ class _SkyViewScreenState extends State<SkyViewScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (app.useSensors) ori.start();
+    if (app.arMode) _ar.start();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _ar.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Release the camera in the background so other apps can use it.
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+      _ar.stop();
+    } else if (state == AppLifecycleState.resumed && app.arMode) {
+      _ar.start();
+    }
+  }
+
+  /// Horizontal field of view actually drawn. In AR mode it follows the
+  /// camera lens instead of the zoom setting.
+  double get _fov {
+    if (!app.arMode || _size.isEmpty) return app.fov;
+    return arScreenFov(_size, _ar.portraitPreviewSize ?? const Size(3, 4), app.cameraFov);
+  }
+
+  SkyProjection get _projection => SkyProjection(_camera, _size, _fov, rectilinear: app.arMode);
+
+  void _toggleAr() {
+    final v = !app.arMode;
+    app.setArMode(v);
+    if (v) {
+      _ar.start();
+      // AR only makes sense when the view follows the phone.
+      if (!app.useSensors) _toggleSensors();
+    } else {
+      _ar.stop();
+    }
   }
 
   bool get _sensorMode => app.useSensors && ori.available && ori.basis != null;
@@ -48,17 +90,27 @@ class _SkyViewScreenState extends State<SkyViewScreen> {
       final cam = _camera;
       app.setManualView(cam.azimuth, cam.altitude);
       ori.stop();
+      if (app.arMode) {
+        app.setArMode(false);
+        _ar.stop();
+      }
     }
     app.setUseSensors(v);
   }
 
-  void _onScaleStart(ScaleStartDetails d) => _fovAtScaleStart = app.fov;
+  void _onScaleStart(ScaleStartDetails d) => _fovAtScaleStart = app.arMode ? app.cameraFov : app.fov;
 
   void _onScaleUpdate(ScaleUpdateDetails d) {
     if (d.pointerCount >= 2) {
-      app.setFov(_fovAtScaleStart / d.scale);
+      // In AR mode the zoom is fixed by the lens; pinching calibrates the
+      // lens's field of view so the overlay matches the camera image.
+      if (app.arMode) {
+        app.setCameraFov(_fovAtScaleStart / d.scale);
+      } else {
+        app.setFov(_fovAtScaleStart / d.scale);
+      }
     } else if (!_sensorMode) {
-      final degPerPx = app.fov / _size.width;
+      final degPerPx = _fov / _size.width;
       app.setManualView(
         app.manualAz - d.focalPointDelta.dx * degPerPx,
         app.manualAlt + d.focalPointDelta.dy * degPerPx,
@@ -67,7 +119,7 @@ class _SkyViewScreenState extends State<SkyViewScreen> {
   }
 
   void _onTap(TapUpDetails d) {
-    final proj = SkyProjection(_camera, _size, app.fov);
+    final proj = _projection;
     SkyObject? best;
     var bestDist = 40.0;
     for (final o in app.sky.allObjects) {
@@ -131,11 +183,12 @@ class _SkyViewScreenState extends State<SkyViewScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: AnimatedBuilder(
-        animation: Listenable.merge([app, ori]),
+        animation: Listenable.merge([app, ori, _ar]),
         builder: (context, _) {
           final cam = _camera;
           return Stack(
             children: [
+              if (app.arMode) Positioned.fill(child: ArCameraView(camera: _ar)),
               Positioned.fill(
                 child: LayoutBuilder(builder: (context, c) {
                   _size = c.biggest;
@@ -147,7 +200,7 @@ class _SkyViewScreenState extends State<SkyViewScreen> {
                       painter: SkyPainter(
                         sky: app.sky,
                         cam: cam,
-                        fov: app.fov,
+                        fov: _fov,
                         showStars: app.showStars,
                         showConstellations: app.showConstellations,
                         showPlanets: app.showPlanets,
@@ -156,6 +209,7 @@ class _SkyViewScreenState extends State<SkyViewScreen> {
                         showLabels: app.showLabels,
                         showAtmosphere: app.showAtmosphere,
                         selected: _selected,
+                        ar: app.arMode,
                       ),
                       size: Size.infinite,
                     ),
@@ -200,6 +254,7 @@ class _SkyViewScreenState extends State<SkyViewScreen> {
           Expanded(
             child: _glass(
               Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Pointing  ${fmtAz(cam.azimuth)}  ${fmtAlt(cam.altitude)}',
@@ -207,12 +262,24 @@ class _SkyViewScreenState extends State<SkyViewScreen> {
                   const SizedBox(height: 2),
                   Text('☀ Sun  ${fmtAz(sun.az)}  ${fmtAlt(sun.alt)}',
                       style: const TextStyle(color: Color(0xFFFFE082))),
+                  if (ori.needsPermission && app.useSensors)
+                    TextButton.icon(
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero, foregroundColor: Colors.orangeAccent),
+                      icon: const Icon(Icons.screen_rotation, size: 16),
+                      label: const Text('Tap to enable motion sensors'),
+                      onPressed: ori.requestPermission,
+                    ),
                   if (!ori.available && app.useSensors)
                     const Text('No motion sensors — drag to look around',
                         style: TextStyle(color: Colors.orangeAccent, fontSize: 12)),
                   if (warn)
                     const Text('Magnetic interference — wave phone in a figure-8',
                         style: TextStyle(color: Colors.orangeAccent, fontSize: 12)),
+                  if (app.arMode && _ar.error != null)
+                    Text(_ar.error!, style: const TextStyle(color: Colors.orangeAccent, fontSize: 12)),
+                  if (app.arMode && _ar.error == null)
+                    Text('AR lens ${app.cameraFov.toStringAsFixed(0)}° — pinch to line up with the sky',
+                        style: const TextStyle(color: Colors.white60, fontSize: 12)),
                   if (app.locationError != null)
                     Text(app.locationError!, style: const TextStyle(color: Colors.orangeAccent, fontSize: 12)),
                 ],
@@ -227,6 +294,11 @@ class _SkyViewScreenState extends State<SkyViewScreen> {
                 tooltip: app.useSensors ? 'Sensor mode (tap for manual)' : 'Manual mode (tap for sensors)',
                 icon: Icon(app.useSensors ? Icons.explore : Icons.pan_tool_alt, color: Colors.white),
                 onPressed: _toggleSensors,
+              ),
+              IconButton(
+                tooltip: app.arMode ? 'AR camera on (tap to turn off)' : 'AR camera off (tap to turn on)',
+                icon: Icon(app.arMode ? Icons.videocam : Icons.videocam_off_outlined, color: Colors.white),
+                onPressed: _toggleAr,
               ),
               IconButton(
                 tooltip: 'Find the Sun',

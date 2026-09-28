@@ -125,6 +125,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: Text('${app.fov.toStringAsFixed(0)}° (pinch in the sky view to zoom)'),
               ),
               Slider(min: 10, max: 150, value: app.fov, onChanged: app.setFov),
+              ListTile(
+                title: const Text('AR camera lens'),
+                subtitle: Text('${app.cameraFov.toStringAsFixed(1)}° along the long side of the image. '
+                    'Adjust (or pinch in AR mode) until the overlay lines up with the real sky.'),
+              ),
+              Slider(min: 30, max: 110, value: app.cameraFov, onChanged: app.setCameraFov),
               const _Header('Display'),
               toggle('showAtmosphere', 'Atmosphere', app.showAtmosphere, 'Daylight sky hides stars, like Stellarium'),
               toggle('showStars', 'Stars', app.showStars),

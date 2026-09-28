@@ -4,6 +4,8 @@
 <dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Your location is used to compute where the Sun, Moon, planets and stars are in your sky.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>The camera shows the real sky behind the Sun, Moon, planets and stars in AR mode.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Motion sensors are used to show the part of the sky your phone is pointing at.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
