@@ -39,8 +39,14 @@ class ZodiacGeometry {
   final List<(List<double>, List<double>)> rashiTicks, nakshatraTicks;
   final List<(String, List<double>)> rashiLabels, nakshatraLabels;
 
+  /// When the Sun enters each nakshatra (nearest occurrence), index-aligned with [nakshatraLabels].
+  final List<DateTime> nakshatraEntries;
+
+  /// When the Moon next enters each nakshatra, index-aligned with [nakshatraLabels].
+  final List<DateTime> nakshatraMoonEntries;
+
   ZodiacGeometry._(this.ecliptic, this.equator, this.seasonPoints, this.rashiTicks, this.nakshatraTicks,
-      this.rashiLabels, this.nakshatraLabels);
+      this.rashiLabels, this.nakshatraLabels, this.nakshatraEntries, this.nakshatraMoonEntries);
 
   factory ZodiacGeometry.compute(DateTime t, double lat, double lon) {
     final tc = centuriesTT(t);
@@ -62,6 +68,8 @@ class ZodiacGeometry {
       [for (var i = 0; i < 27; i++) (sid(i * nakshatraSpan, -3), sid(i * nakshatraSpan, 3))],
       [for (var i = 0; i < 12; i++) (rashis[i].name, sid(i * 30.0 + 15, 6))],
       [for (var i = 0; i < 27; i++) (nakshatras[i], sid((i + 0.5) * nakshatraSpan, -4.5))],
+      [for (var i = 0; i < 27; i++) sunEntersNakshatra(t, i)],
+      [for (var i = 0; i < 27; i++) moonEntersNakshatra(t, i)],
     );
   }
 }
@@ -86,8 +94,11 @@ class SkySnapshot {
   final double ayanamsa;
   final ZodiacGeometry zodiac;
 
+  /// Nakshatra index the Moon will be in at the next new / full Moon.
+  final int newMoonNakshatra, fullMoonNakshatra;
+
   SkySnapshot._(this.time, this.lat, this.lon, this.sun, this.moon, this.moonFraction, this.moonAge,
-      this.planets, this.stars, this.sunPath, this.nodes, this.grahas, this.ayanamsa, this.zodiac)
+      this.planets, this.stars, this.sunPath, this.nodes, this.grahas, this.ayanamsa, this.zodiac, this.newMoonNakshatra, this.fullMoonNakshatra)
       : starsByName = {for (final s in stars) s.name: s};
 
   /// The graha shown by a sky object (Sun, Moon, Mars … Rahu, Ketu), if any.
@@ -132,7 +143,8 @@ class SkySnapshot {
         equatorialToHorizontal(eclipticToEquatorial(eclLon, 0, eps), t, lat, lon), 0, const Color(0xFFB39DDB));
     final nodes = [node('Rahu', rahuLon), node('Ketu', rahuLon + 180)];
     return SkySnapshot._(t, lat, lon, sun, moon, phase.fraction, phase.ageDegrees, planets, stars, path, nodes,
-        grahaPositions(t), lahiriAyanamsa(tc), ZodiacGeometry.compute(t, lat, lon));
+        grahaPositions(t), lahiriAyanamsa(tc), ZodiacGeometry.compute(t, lat, lon),
+        moonNakshatraIndexAt(nextMoonPhaseTime(t, 0)), moonNakshatraIndexAt(nextMoonPhaseTime(t, 180)));
   }
 
   Iterable<SkyObject> get allObjects sync* {

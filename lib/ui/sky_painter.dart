@@ -4,11 +4,10 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../astro/astro_math.dart';
-import '../astro/moon.dart';
 import '../astro/stars.dart';
-import '../astro/vedic.dart';
 import '../sensors/orientation_service.dart';
 import '../state/sky_model.dart';
+import 'format.dart';
 
 /// Projection centred on the camera's forward direction.
 ///
@@ -328,12 +327,20 @@ class SkyPainter extends CustomPainter {
     }
 
     labels(z.rashiLabels, const Color(0xFFFFCC80), 13, bold: true);
-    // Mark the Moon's nakshatra with ○ / ● at new / full Moon.
-    final sym = moonPhaseSymbol(sky.moonAge);
-    final moonNak = sym.isEmpty
-        ? null
-        : sky.grahas.where((g) => g.graha == Graha.chandra).firstOrNull?.sidereal.nakshatra;
-    labels([for (final (n, v) in z.nakshatraLabels) (n == moonNak ? '$n $sym' : n, v)], const Color(0xCC80CBC4), 10);
+    // ○ / ● on the nakshatras where the next new / full Moon will fall.
+    labels([
+      for (final (i, (n, v)) in z.nakshatraLabels.indexed)
+        (i == sky.newMoonNakshatra ? '$n ○' : i == sky.fullMoonNakshatra ? '$n ●' : n, v)
+    ], const Color(0xCC80CBC4), 10);
+    // Gregorian dates under each nakshatra: when the Moon next enters it, and when the Sun does.
+    void dateLine(Offset p, double dy, String text, Color color) =>
+        _label(canvas, p + Offset(-text.length * 9 * 0.28, dy), text, color, 9);
+    for (final (i, (_, v)) in z.nakshatraLabels.indexed) {
+      final p = _proj.project(v);
+      if (p == null || !_proj.onScreen(p, 20)) continue;
+      dateLine(p, 6, '☾ ${fmtMonthDay(z.nakshatraMoonEntries[i])}', const Color(0xCCE0E0E0));
+      dateLine(p, 17, '☀ ${fmtMonthDay(z.nakshatraEntries[i])}', const Color(0xCCFFCC80));
+    }
   }
 
   void _paintNodes(Canvas canvas) {

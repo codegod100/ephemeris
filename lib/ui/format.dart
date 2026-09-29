@@ -10,6 +10,8 @@ String fmtTime(DateTime? t, {bool seconds = false}) {
 
 const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+String fmtMonthDay(DateTime t) => '${_months[t.month - 1]} ${t.day}';
+
 String fmtDate(DateTime t) => '${t.day} ${_months[t.month - 1]} ${t.year}';
 
 String fmtDuration(Duration? d) {

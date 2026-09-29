@@ -154,3 +154,19 @@ String moonPhaseSymbol(double ageDeg) {
   if (name == 'Full Moon') return '●';
   return '';
 }
+
+/// The next instant at or after [t] when the Moon's elongation from the Sun
+/// equals [targetAge] degrees (0 = new Moon, 180 = full Moon).
+DateTime nextMoonPhaseTime(DateTime t, double targetAge) {
+  const degPerDay = 12.19; // mean elongation rate
+  var cur = t;
+  var remaining = normDeg(targetAge - moonPhase(t).ageDegrees);
+  for (var i = 0; i < 6; i++) {
+    cur = cur.add(Duration(milliseconds: (remaining / degPerDay * 86400000).round()));
+    // Signed residual in -180..180; positive means we overshot.
+    final err = normDeg(moonPhase(cur).ageDegrees - targetAge + 180) - 180;
+    if (err.abs() < 0.001) break;
+    remaining = -err;
+  }
+  return cur;
+}

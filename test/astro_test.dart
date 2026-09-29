@@ -5,6 +5,7 @@ import 'package:helios_sky/astro/moon.dart';
 import 'package:helios_sky/astro/planets.dart';
 import 'package:helios_sky/astro/stars.dart';
 import 'package:helios_sky/astro/sun.dart';
+import 'package:helios_sky/astro/vedic.dart';
 
 /// Converts a Terrestrial Time instant into the UT DateTime our API expects.
 DateTime fromTT(int y, int m, int d, [double hours = 0]) {
@@ -105,5 +106,42 @@ void main() {
         }
       }
     });
+  });
+
+  test('nextMoonPhaseTime finds the coming new and full Moon', () {
+    final t = DateTime.utc(2026, 9, 29, 6);
+    for (final target in [0.0, 180.0]) {
+      final n = nextMoonPhaseTime(t, target);
+      final gap = n.difference(t);
+      expect(gap.isNegative, isFalse);
+      expect(gap.inDays, lessThanOrEqualTo(30));
+      final err = (moonPhase(n).ageDegrees - target + 180) % 360 - 180;
+      expect(err.abs(), lessThan(0.01));
+    }
+  });
+
+  test('sunEntersNakshatra lands on the nakshatra boundary', () {
+    final t = DateTime.utc(2026, 9, 29, 6);
+    for (final i in [0, 13, 26]) {
+      final e = sunEntersNakshatra(t, i);
+      expect(e.difference(t).inDays.abs(), lessThanOrEqualTo(183));
+      final tc = centuriesTT(e);
+      final lon = normDeg(sunApparentEcliptic(e).lon - nutation(tc).dPsi - lahiriAyanamsa(tc));
+      final err = (lon - i * nakshatraSpan + 180) % 360 - 180;
+      expect(err.abs(), lessThan(0.01));
+    }
+  });
+
+  test('moonEntersNakshatra lands on the boundary within a lunar month', () {
+    final t = DateTime.utc(2026, 9, 29, 6);
+    for (final i in [0, 13, 26]) {
+      final e = moonEntersNakshatra(t, i);
+      expect(e.difference(t).isNegative, isFalse);
+      expect(e.difference(t).inHours, lessThanOrEqualTo(28 * 24));
+      final tc = centuriesTT(e);
+      final lon = normDeg(moonPosition(e).lon - nutation(tc).dPsi - lahiriAyanamsa(tc));
+      final err = (lon - i * nakshatraSpan + 180) % 360 - 180;
+      expect(err.abs(), lessThan(0.02));
+    }
   });
 }
