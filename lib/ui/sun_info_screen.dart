@@ -78,7 +78,8 @@ class SunInfoScreen extends StatelessWidget {
                 ListTile(
                   dense: true,
                   title: Text('${g.graha.sanskrit} · ${g.graha.english}'),
-                  subtitle: Text('${g.sidereal.nakshatra} pada ${g.sidereal.pada} · '
+                  subtitle: Text('${g.sidereal.nakshatra}'
+                      '${g.graha == Graha.chandra && moonPhaseSymbol(sky.moonAge).isNotEmpty ? ' ${moonPhaseSymbol(sky.moonAge)}' : ''} pada ${g.sidereal.pada} · '
                       'lord ${g.sidereal.nakshatraLord.sanskrit}'),
                   trailing: Text(
                     '${g.sidereal.rashi.name} ${fmtDegMin(g.sidereal.degInRashi)}${g.retrograde ? ' ℞' : ''}\n'

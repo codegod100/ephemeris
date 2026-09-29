@@ -146,3 +146,11 @@ String moonPhaseName(double ageDeg) {
   if (ageDeg < 281.25) return 'Last Quarter';
   return 'Waning Crescent';
 }
+
+/// '○' at the new Moon, '●' at the full Moon, otherwise empty.
+String moonPhaseSymbol(double ageDeg) {
+  final name = moonPhaseName(ageDeg);
+  if (name == 'New Moon') return '○';
+  if (name == 'Full Moon') return '●';
+  return '';
+}

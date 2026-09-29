@@ -345,7 +345,7 @@ class _SkyViewScreenState extends State<SkyViewScreen> with WidgetsBindingObserv
       SkyObjectKind.node => o.name == 'Rahu' ? 'Ascending lunar node' : 'Descending lunar node',
     };
     final graha = app.showVedic ? app.sky.grahaFor(o) : null;
-    final vedic = graha == null ? null : fmtGraha(graha);
+    final vedic = graha == null ? null : fmtGraha(graha, moonAge: app.sky.moonAge);
     return Positioned(
       left: 12,
       right: 12,
