@@ -106,4 +106,16 @@ void main() {
       }
     });
   });
+
+  test('nextMoonPhaseTime finds the coming new and full Moon', () {
+    final t = DateTime.utc(2026, 9, 29, 6);
+    for (final target in [0.0, 180.0]) {
+      final n = nextMoonPhaseTime(t, target);
+      final gap = n.difference(t);
+      expect(gap.isNegative, isFalse);
+      expect(gap.inDays, lessThanOrEqualTo(30));
+      final err = (moonPhase(n).ageDegrees - target + 180) % 360 - 180;
+      expect(err.abs(), lessThan(0.01));
+    }
+  });
 }

@@ -147,3 +147,10 @@ List<GrahaPosition> grahaPositions(DateTime t) {
 
 /// Tropical ecliptic longitude (mean equinox of date) of a sidereal longitude.
 double siderealToTropical(double siderealLon, double tc) => normDeg(siderealLon + lahiriAyanamsa(tc));
+
+/// Index (0..26) of the sidereal nakshatra the Moon occupies at [t].
+int moonNakshatraIndexAt(DateTime t) {
+  final tc = centuriesTT(t);
+  final lon = normDeg(moonPosition(t).lon - nutation(tc).dPsi - lahiriAyanamsa(tc));
+  return SiderealPosition(lon).nakshatraIndex;
+}

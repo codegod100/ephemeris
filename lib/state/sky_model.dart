@@ -86,8 +86,11 @@ class SkySnapshot {
   final double ayanamsa;
   final ZodiacGeometry zodiac;
 
+  /// Nakshatra index the Moon will be in at the next new / full Moon.
+  final int newMoonNakshatra, fullMoonNakshatra;
+
   SkySnapshot._(this.time, this.lat, this.lon, this.sun, this.moon, this.moonFraction, this.moonAge,
-      this.planets, this.stars, this.sunPath, this.nodes, this.grahas, this.ayanamsa, this.zodiac)
+      this.planets, this.stars, this.sunPath, this.nodes, this.grahas, this.ayanamsa, this.zodiac, this.newMoonNakshatra, this.fullMoonNakshatra)
       : starsByName = {for (final s in stars) s.name: s};
 
   /// The graha shown by a sky object (Sun, Moon, Mars … Rahu, Ketu), if any.
@@ -132,7 +135,8 @@ class SkySnapshot {
         equatorialToHorizontal(eclipticToEquatorial(eclLon, 0, eps), t, lat, lon), 0, const Color(0xFFB39DDB));
     final nodes = [node('Rahu', rahuLon), node('Ketu', rahuLon + 180)];
     return SkySnapshot._(t, lat, lon, sun, moon, phase.fraction, phase.ageDegrees, planets, stars, path, nodes,
-        grahaPositions(t), lahiriAyanamsa(tc), ZodiacGeometry.compute(t, lat, lon));
+        grahaPositions(t), lahiriAyanamsa(tc), ZodiacGeometry.compute(t, lat, lon),
+        moonNakshatraIndexAt(nextMoonPhaseTime(t, 0)), moonNakshatraIndexAt(nextMoonPhaseTime(t, 180)));
   }
 
   Iterable<SkyObject> get allObjects sync* {
