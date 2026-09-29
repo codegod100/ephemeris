@@ -148,6 +148,17 @@ class _SkyViewScreenState extends State<SkyViewScreen> with WidgetsBindingObserv
     setState(() => _selected = 'Sun');
   }
 
+  void _lookAtMoon() {
+    if (_sensorMode) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Follow the ☾ arrow at the edge of the screen to find the Moon.'),
+      ));
+      return;
+    }
+    app.setManualView(app.sky.moon.pos.az, app.sky.moon.pos.alt);
+    setState(() => _selected = 'Moon');
+  }
+
   Future<void> _calibrateOnSun() async {
     final cam = _camera;
     final sun = app.sky.sun.pos;
@@ -307,6 +318,11 @@ class _SkyViewScreenState extends State<SkyViewScreen> with WidgetsBindingObserv
                 tooltip: 'Find the Sun',
                 icon: const Icon(Icons.wb_sunny, color: Color(0xFFFFC04D)),
                 onPressed: _lookAtSun,
+              ),
+              IconButton(
+                tooltip: 'Find the Moon',
+                icon: const Icon(Icons.nightlight_round, color: Color(0xFFE0E0E0)),
+                onPressed: _lookAtMoon,
               ),
               if (_sensorMode && sun.alt > 0)
                 IconButton(

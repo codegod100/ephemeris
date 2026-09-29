@@ -105,7 +105,8 @@ class SkyPainter extends CustomPainter {
     }
     _paintCardinals(canvas);
     _paintSelection(canvas);
-    _paintOffscreenSunArrow(canvas, size);
+    _paintOffscreenArrow(canvas, size, sky.sun.enu, '☀', const Color(0xFFFFC04D), const Color(0xFFFFE082));
+    _paintOffscreenArrow(canvas, size, sky.moon.enu, '☾', const Color(0xFFB0BEC5), const Color(0xFFE0E0E0));
   }
 
   // ---- background ----------------------------------------------------------
@@ -501,11 +502,11 @@ class SkyPainter extends CustomPainter {
     canvas.drawCircle(p, r, paint..color = const Color(0x667CFFB2));
   }
 
-  /// When the Sun is out of view, draw an edge arrow pointing the way to it.
-  void _paintOffscreenSunArrow(Canvas canvas, Size size) {
-    final p = _proj.project(sky.sun.enu, minZ: -0.99);
+  /// When a body is out of view, draw an edge arrow pointing the way to it.
+  void _paintOffscreenArrow(Canvas canvas, Size size, List<double> enu, String glyph, Color arrowColor, Color textColor) {
+    final p = _proj.project(enu, minZ: -0.99);
     if (p != null && _proj.onScreen(p, -20)) return;
-    final (x, y, z) = _proj.camSpace(sky.sun.enu);
+    final (x, y, z) = _proj.camSpace(enu);
     final dir = Offset(x, -y);
     if (dir.distance < 1e-9) return;
     final d = dir / dir.distance;
@@ -524,10 +525,10 @@ class SkyPainter extends CustomPainter {
       ..lineTo(-3, 0)
       ..lineTo(-8, 12)
       ..close();
-    canvas.drawPath(arrow, Paint()..color = const Color(0xFFFFC04D));
+    canvas.drawPath(arrow, Paint()..color = arrowColor);
     canvas.restore();
     final sep = acosD(z);
-    _label(canvas, tip - d * 34 + const Offset(-22, -8), '☀ ${sep.toStringAsFixed(0)}°', const Color(0xFFFFE082), 13,
+    _label(canvas, tip - d * 34 + const Offset(-22, -8), '$glyph ${sep.toStringAsFixed(0)}°', textColor, 13,
         bold: true);
   }
 
