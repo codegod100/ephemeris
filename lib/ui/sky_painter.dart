@@ -339,7 +339,7 @@ class SkyPainter extends CustomPainter {
       final p = _proj.project(v);
       if (p == null || !_proj.onScreen(p, 20)) continue;
       dateLine(p, 6, '☾ ${fmtMonthDay(z.nakshatraMoonEntries[i])}', const Color(0xCCE0E0E0));
-      dateLine(p, 17, '☀ ${fmtMonthDay(z.nakshatraEntries[i])}', const Color(0xCCFFCC80));
+      dateLine(p, 22, '☀ ${fmtMonthDay(z.nakshatraEntries[i])}', const Color(0xCCFFCC80));
     }
   }
 
