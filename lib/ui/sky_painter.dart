@@ -4,9 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../astro/astro_math.dart';
-import '../astro/moon.dart';
 import '../astro/stars.dart';
-import '../astro/vedic.dart';
 import '../sensors/orientation_service.dart';
 import '../state/sky_model.dart';
 import 'format.dart';
