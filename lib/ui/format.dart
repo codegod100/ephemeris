@@ -1,3 +1,4 @@
+import '../astro/moon.dart';
 import '../astro/vedic.dart';
 
 String two(int n) => n.toString().padLeft(2, '0');
@@ -39,8 +40,9 @@ String fmtDegMin(double d) {
 }
 
 /// e.g. "Tula 12°05′ · Swati 2 (Rahu) ℞".
-String fmtGraha(GrahaPosition g) {
+String fmtGraha(GrahaPosition g, {double? moonAge}) {
   final s = g.sidereal;
-  return '${s.rashi.name} ${fmtDegMin(s.degInRashi)} · ${s.nakshatra} ${s.pada} '
+  final sym = g.graha == Graha.chandra && moonAge != null ? moonPhaseSymbol(moonAge) : '';
+  return '${s.rashi.name} ${fmtDegMin(s.degInRashi)} · ${s.nakshatra}${sym.isEmpty ? '' : ' $sym'} ${s.pada} '
       '(${s.nakshatraLord.sanskrit})${g.retrograde ? ' ℞' : ''}';
 }
