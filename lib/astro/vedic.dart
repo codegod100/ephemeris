@@ -154,3 +154,22 @@ int moonNakshatraIndexAt(DateTime t) {
   final lon = normDeg(moonPosition(t).lon - nutation(tc).dPsi - lahiriAyanamsa(tc));
   return SiderealPosition(lon).nakshatraIndex;
 }
+
+/// The instant nearest [t] (within half a year) when the Sun enters sidereal
+/// nakshatra [index], i.e. reaches sidereal longitude index × 13°20′.
+DateTime sunEntersNakshatra(DateTime t, int index) {
+  double sunSidereal(DateTime x) {
+    final tc = centuriesTT(x);
+    return normDeg(sunApparentEcliptic(x).lon - nutation(tc).dPsi - lahiriAyanamsa(tc));
+  }
+
+  const degPerDay = 0.9856; // mean solar motion
+  final target = index * nakshatraSpan;
+  var cur = t;
+  for (var i = 0; i < 5; i++) {
+    final diff = normDeg(target - sunSidereal(cur) + 180) - 180;
+    if (diff.abs() < 0.001) break;
+    cur = cur.add(Duration(milliseconds: (diff / degPerDay * 86400000).round()));
+  }
+  return cur;
+}

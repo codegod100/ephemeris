@@ -9,6 +9,7 @@ import '../astro/stars.dart';
 import '../astro/vedic.dart';
 import '../sensors/orientation_service.dart';
 import '../state/sky_model.dart';
+import 'format.dart';
 
 /// Projection centred on the camera's forward direction.
 ///
@@ -333,6 +334,13 @@ class SkyPainter extends CustomPainter {
       for (final (i, (n, v)) in z.nakshatraLabels.indexed)
         (i == sky.newMoonNakshatra ? '$n ○' : i == sky.fullMoonNakshatra ? '$n ●' : n, v)
     ], const Color(0xCC80CBC4), 10);
+    // Gregorian date the Sun enters each nakshatra, under its name.
+    for (final (i, (_, v)) in z.nakshatraLabels.indexed) {
+      final p = _proj.project(v);
+      if (p == null || !_proj.onScreen(p, 20)) continue;
+      final d = fmtMonthDay(z.nakshatraEntries[i]);
+      _label(canvas, p + Offset(-d.length * 9 * 0.28, 6), d, const Color(0x9980CBC4), 9);
+    }
   }
 
   void _paintNodes(Canvas canvas) {
