@@ -57,3 +57,19 @@ jobs:
         with:
           name: helios-sky-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+
+  deploy-modal:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    concurrency: deploy-modal
+    env:
+      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install modal
+      - run: modal deploy deploy/modal_app.py
