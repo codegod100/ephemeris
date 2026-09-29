@@ -4,7 +4,9 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../astro/astro_math.dart';
+import '../astro/moon.dart';
 import '../astro/stars.dart';
+import '../astro/vedic.dart';
 import '../sensors/orientation_service.dart';
 import '../state/sky_model.dart';
 
@@ -103,7 +105,8 @@ class SkyPainter extends CustomPainter {
     }
     _paintCardinals(canvas);
     _paintSelection(canvas);
-    _paintOffscreenSunArrow(canvas, size);
+    _paintOffscreenArrow(canvas, size, sky.sun.enu, '☀', const Color(0xFFFFC04D), const Color(0xFFFFE082));
+    _paintOffscreenArrow(canvas, size, sky.moon.enu, '☾', const Color(0xFFB0BEC5), const Color(0xFFE0E0E0));
   }
 
   // ---- background ----------------------------------------------------------
@@ -325,7 +328,12 @@ class SkyPainter extends CustomPainter {
     }
 
     labels(z.rashiLabels, const Color(0xFFFFCC80), 13, bold: true);
-    labels(z.nakshatraLabels, const Color(0xCC80CBC4), 10);
+    // Mark the Moon's nakshatra with ○ / ● at new / full Moon.
+    final sym = moonPhaseSymbol(sky.moonAge);
+    final moonNak = sym.isEmpty
+        ? null
+        : sky.grahas.where((g) => g.graha == Graha.chandra).firstOrNull?.sidereal.nakshatra;
+    labels([for (final (n, v) in z.nakshatraLabels) (n == moonNak ? '$n $sym' : n, v)], const Color(0xCC80CBC4), 10);
   }
 
   void _paintNodes(Canvas canvas) {
@@ -494,11 +502,11 @@ class SkyPainter extends CustomPainter {
     canvas.drawCircle(p, r, paint..color = const Color(0x667CFFB2));
   }
 
-  /// When the Sun is out of view, draw an edge arrow pointing the way to it.
-  void _paintOffscreenSunArrow(Canvas canvas, Size size) {
-    final p = _proj.project(sky.sun.enu, minZ: -0.99);
+  /// When a body is out of view, draw an edge arrow pointing the way to it.
+  void _paintOffscreenArrow(Canvas canvas, Size size, List<double> enu, String glyph, Color arrowColor, Color textColor) {
+    final p = _proj.project(enu, minZ: -0.99);
     if (p != null && _proj.onScreen(p, -20)) return;
-    final (x, y, z) = _proj.camSpace(sky.sun.enu);
+    final (x, y, z) = _proj.camSpace(enu);
     final dir = Offset(x, -y);
     if (dir.distance < 1e-9) return;
     final d = dir / dir.distance;
@@ -517,10 +525,10 @@ class SkyPainter extends CustomPainter {
       ..lineTo(-3, 0)
       ..lineTo(-8, 12)
       ..close();
-    canvas.drawPath(arrow, Paint()..color = const Color(0xFFFFC04D));
+    canvas.drawPath(arrow, Paint()..color = arrowColor);
     canvas.restore();
     final sep = acosD(z);
-    _label(canvas, tip - d * 34 + const Offset(-22, -8), '☀ ${sep.toStringAsFixed(0)}°', const Color(0xFFFFE082), 13,
+    _label(canvas, tip - d * 34 + const Offset(-22, -8), '$glyph ${sep.toStringAsFixed(0)}°', textColor, 13,
         bold: true);
   }
 
