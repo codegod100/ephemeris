@@ -42,8 +42,11 @@ class ZodiacGeometry {
   /// When the Sun enters each nakshatra (nearest occurrence), index-aligned with [nakshatraLabels].
   final List<DateTime> nakshatraEntries;
 
+  /// When the Moon next enters each nakshatra, index-aligned with [nakshatraLabels].
+  final List<DateTime> nakshatraMoonEntries;
+
   ZodiacGeometry._(this.ecliptic, this.equator, this.seasonPoints, this.rashiTicks, this.nakshatraTicks,
-      this.rashiLabels, this.nakshatraLabels, this.nakshatraEntries);
+      this.rashiLabels, this.nakshatraLabels, this.nakshatraEntries, this.nakshatraMoonEntries);
 
   factory ZodiacGeometry.compute(DateTime t, double lat, double lon) {
     final tc = centuriesTT(t);
@@ -66,6 +69,7 @@ class ZodiacGeometry {
       [for (var i = 0; i < 12; i++) (rashis[i].name, sid(i * 30.0 + 15, 6))],
       [for (var i = 0; i < 27; i++) (nakshatras[i], sid((i + 0.5) * nakshatraSpan, -4.5))],
       [for (var i = 0; i < 27; i++) sunEntersNakshatra(t, i)],
+      [for (var i = 0; i < 27; i++) moonEntersNakshatra(t, i)],
     );
   }
 }

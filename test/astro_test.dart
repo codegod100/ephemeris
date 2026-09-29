@@ -131,4 +131,17 @@ void main() {
       expect(err.abs(), lessThan(0.01));
     }
   });
+
+  test('moonEntersNakshatra lands on the boundary within a lunar month', () {
+    final t = DateTime.utc(2026, 9, 29, 6);
+    for (final i in [0, 13, 26]) {
+      final e = moonEntersNakshatra(t, i);
+      expect(e.difference(t).isNegative, isFalse);
+      expect(e.difference(t).inHours, lessThanOrEqualTo(28 * 24));
+      final tc = centuriesTT(e);
+      final lon = normDeg(moonPosition(e).lon - nutation(tc).dPsi - lahiriAyanamsa(tc));
+      final err = (lon - i * nakshatraSpan + 180) % 360 - 180;
+      expect(err.abs(), lessThan(0.02));
+    }
+  });
 }

@@ -332,12 +332,14 @@ class SkyPainter extends CustomPainter {
       for (final (i, (n, v)) in z.nakshatraLabels.indexed)
         (i == sky.newMoonNakshatra ? '$n ○' : i == sky.fullMoonNakshatra ? '$n ●' : n, v)
     ], const Color(0xCC80CBC4), 10);
-    // Gregorian date the Sun enters each nakshatra, under its name.
+    // Gregorian dates under each nakshatra: when the Moon next enters it, and when the Sun does.
+    void dateLine(Offset p, double dy, String text, Color color) =>
+        _label(canvas, p + Offset(-text.length * 9 * 0.28, dy), text, color, 9);
     for (final (i, (_, v)) in z.nakshatraLabels.indexed) {
       final p = _proj.project(v);
       if (p == null || !_proj.onScreen(p, 20)) continue;
-      final d = fmtMonthDay(z.nakshatraEntries[i]);
-      _label(canvas, p + Offset(-d.length * 9 * 0.28, 6), d, const Color(0x9980CBC4), 9);
+      dateLine(p, 6, '☾ ${fmtMonthDay(z.nakshatraMoonEntries[i])}', const Color(0xCCE0E0E0));
+      dateLine(p, 17, '☀ ${fmtMonthDay(z.nakshatraEntries[i])}', const Color(0xCCFFCC80));
     }
   }
 

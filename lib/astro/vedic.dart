@@ -148,11 +148,29 @@ List<GrahaPosition> grahaPositions(DateTime t) {
 /// Tropical ecliptic longitude (mean equinox of date) of a sidereal longitude.
 double siderealToTropical(double siderealLon, double tc) => normDeg(siderealLon + lahiriAyanamsa(tc));
 
-/// Index (0..26) of the sidereal nakshatra the Moon occupies at [t].
-int moonNakshatraIndexAt(DateTime t) {
+/// Sidereal (Lahiri) longitude of the Moon at [t], degrees 0..360.
+double _moonSiderealLon(DateTime t) {
   final tc = centuriesTT(t);
-  final lon = normDeg(moonPosition(t).lon - nutation(tc).dPsi - lahiriAyanamsa(tc));
-  return SiderealPosition(lon).nakshatraIndex;
+  return normDeg(moonPosition(t).lon - nutation(tc).dPsi - lahiriAyanamsa(tc));
+}
+
+/// Index (0..26) of the sidereal nakshatra the Moon occupies at [t].
+int moonNakshatraIndexAt(DateTime t) => SiderealPosition(_moonSiderealLon(t)).nakshatraIndex;
+
+/// The next instant at or after [t] when the Moon enters sidereal nakshatra
+/// [index] (within about 27.3 days).
+DateTime moonEntersNakshatra(DateTime t, int index) {
+  const degPerDay = 13.176; // mean lunar motion
+  final target = index * nakshatraSpan;
+  var cur = t;
+  var diff = normDeg(target - _moonSiderealLon(cur));
+  for (var i = 0; i < 8; i++) {
+    cur = cur.add(Duration(milliseconds: (diff / degPerDay * 86400000).round()));
+    // Signed residual in -180..180; negative means we overshot.
+    diff = normDeg(target - _moonSiderealLon(cur) + 180) - 180;
+    if (diff.abs() < 0.005) break;
+  }
+  return cur;
 }
 
 /// The instant nearest [t] (within half a year) when the Sun enters sidereal
