@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../sensors/orientation_service.dart';
@@ -118,6 +120,17 @@ class _SkyViewScreenState extends State<SkyViewScreen> with WidgetsBindingObserv
     }
   }
 
+  /// Mouse wheel / trackpad scroll zooms like a pinch (scroll up zooms in).
+  void _onPointerSignal(PointerSignalEvent e) {
+    if (e is! PointerScrollEvent) return;
+    final factor = math.exp(e.scrollDelta.dy * 0.002);
+    if (app.arMode) {
+      app.setCameraFov(app.cameraFov * factor);
+    } else {
+      app.setFov(app.fov * factor);
+    }
+  }
+
   void _onTap(TapUpDetails d) {
     final proj = _projection;
     SkyObject? best;
@@ -204,7 +217,9 @@ class _SkyViewScreenState extends State<SkyViewScreen> with WidgetsBindingObserv
               Positioned.fill(
                 child: LayoutBuilder(builder: (context, c) {
                   _size = c.biggest;
-                  return GestureDetector(
+                  return Listener(
+                    onPointerSignal: _onPointerSignal,
+                    child: GestureDetector(
                     onScaleStart: _onScaleStart,
                     onScaleUpdate: _onScaleUpdate,
                     onTapUp: _onTap,
@@ -226,6 +241,7 @@ class _SkyViewScreenState extends State<SkyViewScreen> with WidgetsBindingObserv
                         ar: app.arMode,
                       ),
                       size: Size.infinite,
+                    ),
                     ),
                   );
                 }),
