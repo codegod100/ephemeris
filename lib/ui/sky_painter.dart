@@ -4,7 +4,9 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../astro/astro_math.dart';
+import '../astro/moon.dart';
 import '../astro/stars.dart';
+import '../astro/vedic.dart';
 import '../sensors/orientation_service.dart';
 import '../state/sky_model.dart';
 
@@ -325,7 +327,12 @@ class SkyPainter extends CustomPainter {
     }
 
     labels(z.rashiLabels, const Color(0xFFFFCC80), 13, bold: true);
-    labels(z.nakshatraLabels, const Color(0xCC80CBC4), 10);
+    // Mark the Moon's nakshatra with ○ / ● at new / full Moon.
+    final sym = moonPhaseSymbol(sky.moonAge);
+    final moonNak = sym.isEmpty
+        ? null
+        : sky.grahas.where((g) => g.graha == Graha.chandra).firstOrNull?.sidereal.nakshatra;
+    labels([for (final (n, v) in z.nakshatraLabels) (n == moonNak ? '$n $sym' : n, v)], const Color(0xCC80CBC4), 10);
   }
 
   void _paintNodes(Canvas canvas) {
