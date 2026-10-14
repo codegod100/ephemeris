@@ -133,6 +133,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Slider(min: 30, max: 110, value: app.cameraFov, onChanged: app.setCameraFov),
               const _Header('Display'),
               toggle('showAtmosphere', 'Atmosphere', app.showAtmosphere, 'Daylight sky hides stars, like Stellarium'),
+              toggle('showBelowHorizon', 'Show below horizon', app.showBelowHorizon,
+                  'Draw objects under the horizon instead of hiding them'),
               toggle('showStars', 'Stars', app.showStars),
               toggle('showConstellations', 'Constellation lines', app.showConstellations),
               toggle('showPlanets', 'Planets', app.showPlanets),

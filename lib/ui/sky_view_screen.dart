@@ -235,6 +235,7 @@ class _SkyViewScreenState extends State<SkyViewScreen> with WidgetsBindingObserv
                         showGrid: app.showGrid,
                         showEcliptic: app.showEcliptic,
                         showVedic: app.showVedic,
+                        showBelowHorizon: app.showBelowHorizon,
                         showSunPath: app.showSunPath,
                         showLabels: app.showLabels,
                         showAtmosphere: app.showAtmosphere,

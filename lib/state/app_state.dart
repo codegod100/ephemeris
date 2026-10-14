@@ -45,6 +45,7 @@ class AppState extends ChangeNotifier {
   bool showAtmosphere = true;
   bool showEcliptic = true;
   bool showVedic = true;
+  bool showBelowHorizon = true;
 
   late SkySnapshot sky = SkySnapshot.compute(now, lat, lon);
   Timer? _ticker;
@@ -79,6 +80,7 @@ class AppState extends ChangeNotifier {
     showAtmosphere = p.getBool('showAtmosphere') ?? showAtmosphere;
     showEcliptic = p.getBool('showEcliptic') ?? showEcliptic;
     showVedic = p.getBool('showVedic') ?? showVedic;
+    showBelowHorizon = p.getBool('showBelowHorizon') ?? showBelowHorizon;
     recompute();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!paused) recompute();
@@ -225,6 +227,8 @@ class AppState extends ChangeNotifier {
         showEcliptic = value;
       case 'showVedic':
         showVedic = value;
+      case 'showBelowHorizon':
+        showBelowHorizon = value;
     }
     _prefs?.setBool(key, value);
     notifyListeners();
