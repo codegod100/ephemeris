@@ -83,7 +83,12 @@ class SkyPainter extends CustomPainter {
     _proj = SkyProjection(cam, size, fov, rectilinear: ar);
     final sunAlt = sky.sun.pos.alt;
 
-    if (!ar) _paintSkyBackground(canvas, size, sunAlt);
+    if (!ar) {
+      _paintSkyBackground(canvas, size, sunAlt);
+      // Ground goes under everything else, so objects below the horizon stay
+      // visible (dimmed) instead of being hidden by it.
+      _paintGround(canvas, size, sunAlt);
+    }
     if (showGrid) _paintGrid(canvas);
     if (showEcliptic) _paintEclipticAndEquator(canvas);
     if (showVedic) _paintZodiac(canvas);
@@ -97,15 +102,23 @@ class SkyPainter extends CustomPainter {
     if (showVedic) _paintNodes(canvas);
     _paintMoon(canvas);
     _paintSun(canvas);
-    if (ar) {
-      _paintHorizonLine(canvas);
-    } else {
-      _paintGround(canvas, size, sunAlt);
-    }
+    if (ar) _paintHorizonLine(canvas);
     _paintCardinals(canvas);
     _paintSelection(canvas);
     _paintOffscreenArrow(canvas, size, sky.sun.enu, '☀', const Color(0xFFFFC04D), const Color(0xFFFFE082));
     _paintOffscreenArrow(canvas, size, sky.moon.enu, '☾', const Color(0xFFB0BEC5), const Color(0xFFE0E0E0));
+  }
+
+  /// Opacity multiplier for things below the horizon.
+  static const _belowHorizonAlpha = 0.4;
+
+  /// Runs [draw] at reduced opacity when [alt] is below the horizon.
+  void _dimIfBelow(Canvas canvas, double alt, Offset p, double radius, void Function() draw) {
+    if (alt >= 0) return draw();
+    canvas.saveLayer(Rect.fromCircle(center: p, radius: radius),
+        Paint()..color = Colors.white.withValues(alpha: _belowHorizonAlpha));
+    draw();
+    canvas.restore();
   }
 
   // ---- background ----------------------------------------------------------
@@ -367,7 +380,7 @@ class SkyPainter extends CustomPainter {
       final p = _proj.project(s.enu);
       if (p == null || !_proj.onScreen(p, 10)) continue;
       final r = _starRadius(s.mag);
-      final a = alpha * (s.pos.alt < 0 ? 0.35 : 1.0);
+      final a = alpha * (s.pos.alt < 0 ? _belowHorizonAlpha : 1.0);
       glow.color = Colors.white.withValues(alpha: 0.35 * a);
       canvas.drawCircle(p, r * 1.8, glow);
       core.color = Colors.white.withValues(alpha: a);
@@ -426,11 +439,12 @@ class SkyPainter extends CustomPainter {
     }
   }
 
-  void _paintPlanets(Canvas canvas, double alpha) {
+  void _paintPlanets(Canvas canvas, double baseAlpha) {
     for (final pl in sky.planets) {
       final p = _proj.project(pl.enu);
       if (p == null || !_proj.onScreen(p, 10)) continue;
       final r = math.max(2.0, (3.5 - pl.mag) * 0.9);
+      final alpha = baseAlpha * (pl.pos.alt < 0 ? _belowHorizonAlpha : 1.0);
       canvas.drawCircle(p, r * 2.2, Paint()
         ..color = pl.color.withValues(alpha: 0.25 * alpha)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
@@ -443,10 +457,12 @@ class SkyPainter extends CustomPainter {
     final p = _proj.project(sky.sun.enu);
     if (p == null || !_proj.onScreen(p, 60)) return;
     final r = math.max(9.0, 0.267 * _proj.pxPerDeg);
-    canvas.drawCircle(p, r * 3.5, Paint()
-      ..shader = ui.Gradient.radial(p, r * 3.5, [const Color(0x88FFE082), const Color(0x00FFE082)]));
-    canvas.drawCircle(p, r, Paint()..color = const Color(0xFFFFF3C4));
-    if (showLabels) _label(canvas, p + Offset(r + 4, -8), 'Sun', const Color(0xFFFFE082), 13, bold: true);
+    _dimIfBelow(canvas, sky.sun.pos.alt, p, r * 3.5 + 80, () {
+      canvas.drawCircle(p, r * 3.5, Paint()
+        ..shader = ui.Gradient.radial(p, r * 3.5, [const Color(0x88FFE082), const Color(0x00FFE082)]));
+      canvas.drawCircle(p, r, Paint()..color = const Color(0xFFFFF3C4));
+      if (showLabels) _label(canvas, p + Offset(r + 4, -8), 'Sun', const Color(0xFFFFE082), 13, bold: true);
+    });
   }
 
   void _paintMoon(Canvas canvas) {
@@ -457,7 +473,10 @@ class SkyPainter extends CustomPainter {
     final (sx, sy, _) = _proj.camSpace(sky.sun.enu);
     final (mx, my, _) = _proj.camSpace(sky.moon.enu);
     final angle = math.atan2(-(sy - my), sx - mx);
+    _dimIfBelow(canvas, sky.moon.pos.alt, p, r + 80, () => _drawMoonDisc(canvas, p, r, angle));
+  }
 
+  void _drawMoonDisc(Canvas canvas, Offset p, double r, double angle) {
     canvas.save();
     canvas.translate(p.dx, p.dy);
     canvas.rotate(angle);
